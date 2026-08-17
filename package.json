@@ -1,0 +1,161 @@
+{
+  "name": "reqforge",
+  "displayName": "ReqForge",
+  "description": "Decompose Confluence PRDs into Jira epics and stories, and refine existing ones.",
+  "version": "0.1.0",
+  "publisher": "reqforge",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.99.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "configuration": {
+      "title": "ReqForge",
+      "properties": {
+        "reqforge.atlassian.baseUrl": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Atlassian Cloud site base URL, e.g. `https://acme.atlassian.net`."
+        },
+        "reqforge.atlassian.email": {
+          "type": "string",
+          "default": "",
+          "description": "Atlassian account email used with the API token. The token itself is stored in the OS keychain, never in settings."
+        },
+        "reqforge.atlassian.transport": {
+          "type": "string",
+          "enum": [
+            "rest"
+          ],
+          "default": "rest",
+          "markdownDescription": "How to talk to Atlassian."
+        },
+        "reqforge.jira.projectKey": {
+          "type": "string",
+          "default": "",
+          "description": "Target Jira project key, e.g. ACME."
+        },
+        "reqforge.jira.epicIssueType": {
+          "type": "string",
+          "default": "Epic",
+          "description": "Issue type name used for epics."
+        },
+        "reqforge.jira.storyIssueType": {
+          "type": "string",
+          "default": "Story",
+          "description": "Issue type name used for stories."
+        },
+        "reqforge.llm.provider": {
+          "type": "string",
+          "enum": [
+            "copilot",
+            "fixture"
+          ],
+          "default": "copilot",
+          "markdownDescription": "Language model backend. `fixture` replays recorded responses for offline demos."
+        },
+        "reqforge.llm.modelFamily": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Optional Copilot model family to prefer, e.g. `gpt-4o` or `claude-sonnet-4`. Leave blank to use the first available."
+        },
+        "reqforge.push.dryRunDefault": {
+          "type": "boolean",
+          "default": true,
+          "description": "Push commands preview changes instead of writing to Jira unless explicitly confirmed."
+        },
+        "reqforge.workspaceFolder": {
+          "type": "string",
+          "default": ".reqforge",
+          "description": "Workspace-relative folder where proposals and the trace file are stored."
+        },
+        "reqforge.storageFolder": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Absolute path to a folder where backlog files are stored when no workspace is open. Leave empty to use workspace-relative path."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "reqforge.open",
+        "title": "ReqForge: Open"
+      },
+      {
+        "command": "reqforge.decomposePrd",
+        "title": "ReqForge: Decompose Confluence PRD into Epics"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "reqforge",
+          "title": "ReqForge",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "reqforge": [
+        {
+          "id": "reqforge.start",
+          "name": "ReqForge"
+        }
+      ]
+    },
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "reqforge.decomposePrd",
+          "when": "false"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "reqforge.start",
+        "contents": "Turn a requirements document into a reviewed Jira backlog, or pull an existing epic in to work on.\n\n[Open ReqForge](command:reqforge.open)"
+      }
+    ]
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "smoke": "node scripts/smoke.mjs",
+    "preflight": "node scripts/preflight.mjs",
+    "check": "npm run typecheck && npm run smoke && npm run contract && npm run build",
+    "build": "node esbuild.mjs --profile=restricted",
+    "watch": "node esbuild.mjs --profile=restricted --watch",
+    "package": "npm run check && npx --yes @vscode/vsce package --out reqforge-restricted.vsix && node scripts/verifyVsix.mjs reqforge-restricted.vsix restricted",
+    "vscode:prepublish": "node esbuild.mjs --minify",
+    "harness": "node scripts/harness.mjs",
+    "hooks": "git config core.hooksPath .githooks && echo \"pre-push hook enabled\"",
+    "prepare": "git config core.hooksPath .githooks || true",
+    "contract": "node scripts/contract.mjs",
+    "verify:vsix": "node scripts/verifyVsix.mjs"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "turndown": "^7.2.0",
+    "yaml": "^2.5.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.5",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@types/turndown": "^5.0.5",
+    "@types/vscode": "^1.99.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/subhachak/reqforge.git"
+  }
+}

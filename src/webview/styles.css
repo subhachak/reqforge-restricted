@@ -1,0 +1,501 @@
+/*
+ * Colours come from VS Code's webview theme variables so the panel matches the
+ * user's theme without us shipping a palette. Fallbacks keep the standalone
+ * browser harness (scripts/webview-harness.html) legible.
+ */
+:root {
+  --fg: var(--vscode-foreground, #cccccc);
+  --bg: var(--vscode-editor-background, #1f1f1f);
+  --muted: var(--vscode-descriptionForeground, #9d9d9d);
+  --border: var(--vscode-panel-border, #2b2b2b);
+  --input-bg: var(--vscode-input-background, #313131);
+  --input-fg: var(--vscode-input-foreground, #cccccc);
+  --input-border: var(--vscode-input-border, #3c3c3c);
+  --accent: var(--vscode-button-background, #0078d4);
+  --accent-fg: var(--vscode-button-foreground, #ffffff);
+  --accent-hover: var(--vscode-button-hoverBackground, #026ec1);
+  --secondary: var(--vscode-button-secondaryBackground, #313131);
+  --secondary-fg: var(--vscode-button-secondaryForeground, #cccccc);
+  --focus: var(--vscode-focusBorder, #0078d4);
+  --list-hover: var(--vscode-list-hoverBackground, #2a2d2e);
+  --list-active: var(--vscode-list-activeSelectionBackground, #04395e);
+  --list-active-fg: var(--vscode-list-activeSelectionForeground, #ffffff);
+  --green: var(--vscode-charts-green, #89d185);
+  --yellow: var(--vscode-charts-yellow, #cca700);
+  --blue: var(--vscode-charts-blue, #3794ff);
+  --red: var(--vscode-errorForeground, #f14c4c);
+  --radius: 6px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 0;
+  color: var(--fg);
+  background: var(--bg);
+  font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+  font-size: var(--vscode-font-size, 13px);
+  line-height: 1.5;
+}
+
+button {
+  font: inherit;
+  border: none;
+  border-radius: var(--radius);
+  padding: 6px 12px;
+  cursor: pointer;
+  background: var(--secondary);
+  color: var(--secondary-fg);
+  white-space: nowrap;
+}
+button:hover:not(:disabled) { filter: brightness(1.15); }
+button:disabled { opacity: 0.45; cursor: default; }
+button:focus-visible { outline: 1px solid var(--focus); outline-offset: 1px; }
+button.primary { background: var(--accent); color: var(--accent-fg); }
+button.primary:hover:not(:disabled) { background: var(--accent-hover); }
+button.ghost { background: transparent; color: var(--muted); padding: 4px 8px; }
+button.ghost:hover:not(:disabled) { background: var(--list-hover); color: var(--fg); }
+button.danger:hover:not(:disabled) { background: var(--red); color: #fff; }
+
+input, textarea, select {
+  font: inherit;
+  width: 100%;
+  color: var(--input-fg);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius);
+  padding: 6px 8px;
+  resize: vertical;
+}
+input:focus, textarea:focus, select:focus { outline: 1px solid var(--focus); border-color: var(--focus); }
+textarea { min-height: 34px; overflow: hidden; }
+
+/* ------------------------------------------------------------------ layout */
+
+.app { display: flex; flex-direction: column; height: 100vh; }
+
+.header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 16px; border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.header h1 { font-size: 14px; font-weight: 600; margin: 0; }
+.header .sub { color: var(--muted); font-size: 12px; }
+.header .spacer { flex: 1; }
+.header .actions { display: flex; gap: 8px; align-items: center; }
+
+.body { display: flex; flex: 1; min-height: 0; }
+
+.rail {
+  width: 300px; flex-shrink: 0; overflow-y: auto;
+  border-right: 1px solid var(--border); padding: 8px;
+}
+.detail { flex: 1; overflow-y: auto; padding: 20px 24px; min-width: 0; }
+
+/* ------------------------------------------------------------- epic list */
+
+.epic-row {
+  display: flex; gap: 8px; align-items: flex-start;
+  padding: 8px 10px; border-radius: var(--radius); cursor: pointer;
+  margin-bottom: 2px;
+}
+.epic-row:hover { background: var(--list-hover); }
+.epic-row.selected { background: var(--list-active); color: var(--list-active-fg); }
+.epic-row .title { font-weight: 500; }
+.epic-row .meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.epic-row.selected .meta { color: var(--list-active-fg); opacity: 0.8; }
+.epic-row input[type="checkbox"] { width: auto; margin-top: 3px; flex-shrink: 0; }
+
+.dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+.dot.new { background: var(--blue); }
+.dot.edited { background: var(--yellow); }
+.dot.synced { background: var(--green); }
+
+/* ---------------------------------------------------------------- detail */
+
+.field { margin-bottom: 18px; }
+.field > label {
+  display: block; font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.04em; color: var(--muted); margin-bottom: 6px;
+}
+.field .hint { font-size: 11px; color: var(--muted); font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+.title-input { font-size: 18px; font-weight: 600; padding: 8px 10px; }
+
+.row { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 6px; }
+.row textarea, .row input { flex: 1; }
+
+.ac {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 10px; margin-bottom: 8px;
+}
+.ac .ac-line { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 6px; }
+.ac .ac-line:last-child { margin-bottom: 0; }
+.ac .kw {
+  flex-shrink: 0; width: 48px; text-align: right; padding-top: 7px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted);
+}
+
+.chip-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 8px; border-radius: 999px; font-size: 11px;
+  background: var(--secondary); color: var(--secondary-fg);
+}
+.chip.link { cursor: pointer; text-decoration: none; }
+.chip.link:hover { filter: brightness(1.2); }
+
+.story {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  margin-bottom: 10px; overflow: hidden;
+}
+.story-head {
+  display: flex; gap: 10px; align-items: center;
+  padding: 10px 12px; cursor: pointer;
+}
+.story-head:hover { background: var(--list-hover); }
+.story-head .title { flex: 1; font-weight: 500; }
+.story-body { padding: 12px; border-top: 1px solid var(--border); }
+
+.section-head {
+  display: flex; align-items: center; gap: 10px;
+  margin: 26px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border);
+}
+.section-head h2 { font-size: 13px; font-weight: 600; margin: 0; }
+.section-head .spacer { flex: 1; }
+
+/* -------------------------------------------------------------- insights */
+
+/* Capped so a document with thirty open questions cannot swallow the page. */
+.insights {
+  padding: 12px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+  max-height: 40vh; overflow-y: auto;
+}
+.insights ul { margin: 6px 0 0; padding-left: 18px; }
+.insights li { margin-bottom: 4px; }
+.insights .cols { display: flex; gap: 28px; flex-wrap: wrap; }
+.insights .col { flex: 1; min-width: 260px; }
+.insights h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 0; }
+
+/* --------------------------------------------------------------- refine */
+
+.refine { display: flex; gap: 8px; margin-top: 10px; }
+.refine input { flex: 1; }
+
+/* --------------------------------------------------------- overlays etc */
+
+.notice {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 10px 16px; border-bottom: 1px solid var(--border);
+}
+.notice.error { background: color-mix(in srgb, var(--red) 15%, transparent); }
+.notice.warn { background: color-mix(in srgb, var(--yellow) 15%, transparent); }
+.notice .msg { flex: 1; }
+.notice .hint { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+.overlay {
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.55);
+  display: flex; align-items: center; justify-content: center; padding: 24px; z-index: 10;
+}
+.modal {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+  max-width: 900px; width: 100%; max-height: 85vh; display: flex; flex-direction: column;
+}
+.modal header { padding: 14px 18px; border-bottom: 1px solid var(--border); }
+.modal header h2 { margin: 0; font-size: 14px; }
+.modal .content { padding: 16px 18px; overflow-y: auto; flex: 1; }
+.modal footer { padding: 12px 18px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+
+.diff { display: flex; gap: 14px; }
+.diff .side { flex: 1; min-width: 0; }
+.diff .side h3 { font-size: 11px; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
+.diff pre {
+  margin: 0; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius);
+  white-space: pre-wrap; word-break: break-word; font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 12px; max-height: 52vh; overflow-y: auto;
+}
+
+.plan-item { display: flex; gap: 10px; align-items: baseline; padding: 4px 0; }
+.badge {
+  flex-shrink: 0; font-size: 10px; font-weight: 700; text-transform: uppercase;
+  padding: 2px 6px; border-radius: 3px; letter-spacing: 0.04em;
+}
+.badge.create { background: var(--blue); color: #fff; }
+.badge.update { background: var(--yellow); color: #000; }
+.badge.skip { background: var(--secondary); color: var(--muted); }
+.plan-item.story { padding-left: 22px; font-size: 12px; }
+
+.busy {
+  position: fixed; inset: 0; background: color-mix(in srgb, var(--bg) 78%, transparent);
+  display: flex; flex-direction: column; gap: 14px; align-items: center; justify-content: center; z-index: 20;
+}
+.spinner {
+  width: 26px; height: 26px; border: 2px solid var(--border);
+  border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ------------------------------------------------------------ home cards */
+
+.cards { display: flex; gap: 16px; flex-wrap: wrap; }
+.card {
+  flex: 1; min-width: 300px; display: flex; flex-direction: column;
+  border: 1px solid var(--border); border-radius: 8px; padding: 18px;
+}
+.card h3 { margin: 0 0 8px; font-size: 15px; }
+.card p { margin: 0 0 16px; color: var(--muted); }
+.card button { align-self: flex-start; }
+
+.recent {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius);
+  margin-bottom: 8px; cursor: pointer;
+}
+.recent:hover { background: var(--list-hover); }
+
+pre.readonly {
+  margin: 0; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius);
+  white-space: pre-wrap; word-break: break-word; max-height: 46vh; overflow-y: auto;
+  font-family: var(--vscode-editor-font-family, monospace); font-size: 12px; color: var(--muted);
+}
+
+/* --------------------------------------------------------------- quality */
+
+.pill {
+  flex-shrink: 0; font-size: 11px; font-weight: 700; padding: 2px 8px;
+  border-radius: 999px; letter-spacing: 0.02em; white-space: nowrap;
+}
+.pill.good    { background: var(--green); color: #08240a; }
+.pill.pass    { background: color-mix(in srgb, var(--green) 30%, transparent); color: var(--green); }
+.pill.fail    { background: color-mix(in srgb, var(--red) 25%, transparent); color: var(--red); }
+.pill.unknown { background: var(--secondary); color: var(--muted); font-weight: 500; }
+
+.finding {
+  display: flex; gap: 10px; align-items: baseline;
+  padding: 6px 0; border-bottom: 1px solid var(--border);
+}
+.finding:last-of-type { border-bottom: none; }
+.finding.blocker { color: var(--fg); }
+.finding.warn, .finding.info { color: var(--muted); }
+
+.criteria { margin-top: 12px; }
+.criterion {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+}
+.criterion:last-child { border-bottom: none; }
+
+/* Four ticks, filled to the rating. Coarser than a bar, and harder to misread. */
+.criterion .rating { display: flex; gap: 3px; flex-shrink: 0; padding-top: 5px; width: 36px; }
+.criterion .tick { width: 8px; height: 8px; border-radius: 2px; background: var(--border); }
+.criterion .tick.on { background: var(--muted); }
+.criterion .tick.on.r0, .criterion .tick.on.r1 { background: var(--red); }
+.criterion .tick.on.r2 { background: var(--yellow); }
+.criterion .tick.on.r3 { background: var(--green); }
+
+.empty { padding: 60px 24px; text-align: center; color: var(--muted); }
+.empty h2 { color: var(--fg); font-size: 16px; margin: 0 0 8px; }
+.empty p { max-width: 420px; margin: 0 auto 18px; }
+
+/* ------------------------------------------------------------ rail tools */
+
+.rail-tools { padding: 4px 4px 10px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+.rail-select {
+  display: flex; align-items: center; gap: 4px; margin-top: 6px;
+  font-size: 11px; color: var(--muted);
+}
+.rail-select button { padding: 2px 6px; font-size: 11px; }
+.finding.waived  { color: var(--muted); opacity: 0.8; }
+.finding.waived em { font-style: italic; }
+.finding.accepted { color: var(--yellow); }
+
+/* Which reviewer rated a criterion. Quiet — it is provenance, not a verdict. */
+.attribution {
+  margin-left: 8px; padding: 1px 6px; border-radius: 9px;
+  border: 1px solid var(--border); color: var(--muted); font-size: 10px;
+}
+
+/* An observation is a reviewer's remark, not a rule violation, so it carries a
+   name badge instead of a severity badge and cannot be dismissed as a rule. */
+.finding.observation { color: var(--fg); }
+
+/*
+ * A conflict is a decision, not a defect. It is boxed rather than listed so it
+ * does not read as one more warning to clear, and it deliberately has no
+ * action button — the resolution is a change to the item, made by a person.
+ */
+.conflict {
+  margin: 12px 0; padding: 12px; border-radius: 6px;
+  border: 1px solid var(--yellow);
+  background: color-mix(in srgb, var(--yellow) 7%, transparent);
+}
+.conflict-head { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+/* Collapses on the space actually available, not on viewport width: this card
+   lives inside the detail column, which the rail has already narrowed, so a
+   viewport media query would keep two columns long after they stopped fitting. */
+.conflict-sides {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+.conflict-side {
+  min-width: 0; padding: 8px 10px; border-radius: 4px;
+  background: var(--bg); border: 1px solid var(--border);
+}
+.conflict-who { color: var(--muted); font-size: 11px; margin-bottom: 4px; }
+.conflict-tradeoff { margin-top: 10px; }
+.conflict-tradeoff::before { content: 'Your call: '; color: var(--muted); }
+
+/* Existing Jira work that may already cover a proposed epic. */
+.dupe { display: flex; gap: 10px; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.dupe:last-child { border-bottom: none; }
+.dupe .badge.duplicate { background: var(--red); }
+.dupe .badge.overlaps { background: var(--yellow); color: var(--bg); }
+.dupe-reason { color: var(--muted); }
+
+/* Findings link to the field they are about. */
+.link-finding {
+  flex: 1; text-align: left; background: none; border: none; padding: 0;
+  color: inherit; font: inherit; cursor: pointer; text-decoration: underline;
+  text-decoration-color: var(--border); text-underline-offset: 3px;
+}
+.link-finding:hover { text-decoration-color: var(--fg); }
+
+@keyframes field-flash {
+  0%, 100% { background: transparent; }
+  20%      { background: color-mix(in srgb, var(--focus) 22%, transparent); }
+}
+.field.flash {
+  animation: field-flash 1.5s ease-out;
+  border-radius: var(--radius);
+}
+
+/* ------------------------------------------------------------ issue layout */
+
+/*
+ * Laid out like a Jira issue on purpose: main column for the content, a
+ * details sidebar for status and metadata. Product owners read this shape
+ * every day, so it needs no explaining.
+ */
+.issue { display: flex; gap: 28px; align-items: flex-start; }
+.issue-main { flex: 1; min-width: 0; }
+
+.issue-crumb {
+  display: flex; gap: 6px; align-items: center;
+  font-size: 12px; color: var(--muted); margin-bottom: 6px;
+}
+.crumb-link { color: var(--accent); cursor: pointer; text-decoration: none; }
+.crumb-link:hover { text-decoration: underline; }
+
+.issue-title {
+  font-size: 22px; font-weight: 600; line-height: 1.3;
+  background: none; border: 1px solid transparent; padding: 4px 6px;
+  margin: 0 0 18px -6px; width: calc(100% + 6px);
+}
+.issue-title:hover { background: var(--input-bg); border-color: var(--input-border); }
+.issue-title:focus { background: var(--input-bg); border-color: var(--focus); }
+
+/* Jira's fields read as text until you touch them. */
+.issue-main textarea,
+.issue-main .ac input,
+.issue-main .row input[type="text"] {
+  background: none; border-color: transparent;
+}
+.issue-main textarea:hover,
+.issue-main .row input:hover { background: var(--input-bg); border-color: var(--input-border); }
+.issue-main textarea:focus,
+.issue-main .row input:focus { background: var(--input-bg); border-color: var(--focus); }
+
+.issue-side {
+  width: 260px; flex: none;
+  border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+}
+.side-head {
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.side-list {
+  display: grid; grid-template-columns: 88px 1fr; gap: 10px 12px;
+  margin: 0; padding: 14px;
+  align-items: center;
+}
+.side-list dt { color: var(--muted); font-size: 12px; }
+.side-list dd { margin: 0; min-width: 0; }
+.side-list select { padding: 4px 6px; }
+
+.lozenge {
+  display: inline-block; padding: 2px 8px; border-radius: 3px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
+}
+.lozenge.new { background: color-mix(in srgb, var(--blue) 22%, transparent); color: var(--blue); }
+.lozenge.edited { background: color-mix(in srgb, var(--yellow) 22%, transparent); color: var(--yellow); }
+.lozenge.synced { background: color-mix(in srgb, var(--green) 22%, transparent); color: var(--green); }
+
+/* Narrow panes drop the sidebar under the content rather than squeezing both. */
+@media (max-width: 900px) {
+  .issue { flex-direction: column; }
+  .issue-side { width: 100%; }
+}
+
+/* ------------------------------------------------------------- rail tools */
+
+.rail { display: flex; flex-direction: column; }
+.rail-tools {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 4px 4px 10px; border-bottom: 1px solid var(--border); margin-bottom: 8px;
+}
+.rail-search { width: 100%; }
+
+.rail-foot { display: flex; gap: 6px; padding: 6px 4px; }
+.rail-foot button { flex: 1; }
+
+/* Sits under the list so a selection made anywhere in it stays actionable. */
+.rail-actions {
+  position: sticky; bottom: 0; margin-top: auto;
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 10px 8px; border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+.rail-actions strong { font-size: 12px; }
+.rail-actions button, .rail-actions select { width: 100%; }
+
+/* ------------------------------------------------------- simplified chrome */
+
+/* States the next step in words. The header button is the action. */
+.guidance {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 16px; border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.guidance span { flex: 1; }
+
+/* Everything that is not the next step lives behind one control. */
+.overflow {
+  position: absolute; top: 44px; right: 12px; z-index: 20;
+  display: flex; flex-direction: column; min-width: 220px;
+  border: 1px solid var(--border); border-radius: 8px; background: var(--bg);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35); overflow: hidden;
+}
+.overflow button {
+  background: none; border-radius: 0; text-align: left; padding: 9px 14px;
+  display: flex; justify-content: space-between; gap: 12px;
+}
+.overflow button:hover:not(:disabled) { background: var(--list-hover); }
+.overflow .key { color: var(--muted); font-size: 11px; }
+
+.disclosure {
+  display: flex; align-items: baseline; gap: 10px; width: 100%;
+  background: none; color: var(--muted); padding: 8px 0; margin: 6px 0 14px;
+  border-top: 1px solid var(--border); border-radius: 0; text-align: left;
+}
+.disclosure:hover { color: var(--fg); background: none; }
+.disclosure-hint { font-size: 11px; color: var(--muted); font-weight: 400; }
+
+/* Multi-line probe output — the MCP tool-resolution table. Scrolls rather than
+   forcing the settings column wide. */
+.probe-detail {
+  margin: 6px 0 0; min-width: 0; overflow-x: auto; color: var(--muted);
+  font-family: var(--vscode-editor-font-family, monospace); font-size: 11px;
+  white-space: pre; line-height: 1.5;
+}

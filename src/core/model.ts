@@ -1,0 +1,222 @@
+import type { EpicProposal, ItemLink, PrdSkeleton, StoryProposal } from './schemas';
+
+/** What we know about an item's existence in Jira. */
+export interface SyncState {
+  jiraKey?: string;
+  jiraUrl?: string;
+  /** Hash of the content last successfully pushed, so we can detect local edits. */
+  pushedHash?: string;
+  pushedAt?: string;
+}
+
+export interface EpicItem extends EpicProposal {
+  sync: SyncState;
+  stories: StoryItem[];
+  /** Local grouping only — never created in Jira. See EpicItemSchema. */
+  container?: boolean;
+}
+
+export interface StoryItem extends StoryProposal {
+  sync: SyncState;
+}
+
+export interface Backlog {
+  /** Schema version of this file, so we can migrate later. */
+  version: 1;
+  source: {
+    /** Where the backlog came from: a PRD page, or an existing Jira epic. */
+    kind: 'confluence' | 'jira';
+    /** Confluence page id, or the Jira key when kind is 'jira'. */
+    pageId: string;
+    title: string;
+    url: string;
+    /** Confluence page version at ingest time — tells you the PRD moved under you. */
+    pageVersion?: number;
+    ingestedAt: string;
+  };
+  target: {
+    projectKey: string;
+    epicIssueType: string;
+    storyIssueType: string;
+  };
+  prd: PrdSkeleton;
+  epics: EpicItem[];
+}
+
+/** The label stamped on every issue we create, so re-runs adopt instead of duplicate. */
+export function stampLabel(pageId: string, ref: string): string {
+  return `reqforge-${pageId}-${ref}`.replace(/[^A-Za-z0-9_-]/g, '-').slice(0, 255);
+}
+
+/** Stable content hash used to detect whether an item changed since last push. */
+export function contentHash(value: unknown): string {
+  const json = JSON.stringify(value, Object.keys(value as object).sort());
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
+  for (let i = 0; i < json.length; i++) {
+    const ch = json.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16);
+}
+
+export function epicFingerprint(epic: EpicProposal): string {
+  return contentHash({
+    title: epic.title,
+    description: epic.description,
+    outcome: epic.outcome,
+    ac: epic.acceptanceCriteria,
+    inScope: epic.inScope,
+    outOfScope: epic.outOfScope,
+    priority: epic.priority,
+    successMeasures: epic.successMeasures,
+    nonFunctional: epic.nonFunctional,
+    assumptions: epic.assumptions,
+    links: epic.links
+  });
+}
+
+export function storyFingerprint(story: StoryProposal): string {
+  return contentHash({
+    title: story.title,
+    narrative: story.narrative,
+    description: story.description,
+    ac: story.acceptanceCriteria,
+    points: story.points,
+    priority: story.priority,
+    outOfScope: story.outOfScope,
+    technicalNotes: story.technicalNotes,
+    assumptions: story.assumptions,
+    dependsOn: story.dependsOn,
+    links: story.links
+  });
+}
+
+const LINK_TYPE_LABEL: Record<ItemLink['type'], string> = {
+  design: 'Design',
+  spec: 'Spec',
+  reference: 'Reference'
+};
+
+/** Rendered as ordinary markdown links, which survive the ADF round trip. */
+function linkLines(links: ItemLink[] | undefined): string[] {
+  if (!links?.length) return [];
+  return [
+    '## Links',
+    ...links.map((l) => `- ${LINK_TYPE_LABEL[l.type] ?? 'Reference'}: [${l.label || l.url}](${l.url})`),
+    ''
+  ];
+}
+
+/** Tolerates a hand-edited file that omits an optional list entirely. */
+const list = <T>(value: T[] | undefined): T[] => value ?? [];
+
+export type SyncStatus = 'new' | 'edited' | 'synced';
+
+/**
+ * Whether an item still has something to send.
+ *
+ * The comparison must be against the item's *current* fingerprint. Treating a
+ * present `pushedHash` as "synced" marks anything edited after a push as up to
+ * date, which is exactly the case where sending matters most.
+ */
+export function syncStatus(sync: SyncState, currentHash: string): SyncStatus {
+  if (!sync.jiraKey) return 'new';
+  if (!sync.pushedHash) return 'edited';
+  return sync.pushedHash === currentHash ? 'synced' : 'edited';
+}
+
+/** True when a push would create or update this item. */
+export function isPending(sync: SyncState, currentHash: string): boolean {
+  return syncStatus(sync, currentHash) !== 'synced';
+}
+
+/** Renders an epic to the markdown that becomes its Jira description. */
+export function epicToMarkdown(epic: EpicProposal): string {
+  const out: string[] = [];
+  out.push(`*Outcome:* ${epic.outcome}`, `*Priority:* ${epic.priority ?? 'Should'}`, '', epic.description ?? '', '');
+  if (list(epic.successMeasures).length) {
+    out.push('## Success measures', ...epic.successMeasures.map((s) => `- ${s}`), '');
+  }
+  if (list(epic.inScope).length) {
+    out.push('## In scope', ...epic.inScope.map((s) => `- ${s}`), '');
+  }
+  if (list(epic.outOfScope).length) {
+    out.push('## Out of scope', ...epic.outOfScope.map((s) => `- ${s}`), '');
+  }
+  if (list(epic.acceptanceCriteria).length) {
+    out.push('## Acceptance criteria');
+    for (const ac of epic.acceptanceCriteria) {
+      out.push(`- **Given** ${ac.given} **when** ${ac.when} **then** ${ac.then}`);
+    }
+    out.push('');
+  }
+  if (list(epic.nonFunctional).length) {
+    out.push('## Non-functional requirements', ...epic.nonFunctional.map((n) => `- ${n}`), '');
+  }
+  if (list(epic.assumptions).length) {
+    out.push('## Assumptions', ...epic.assumptions.map((a) => `- ${a}`), '');
+  }
+  out.push(...linkLines(epic.links));
+  if (list(epic.dependsOn).length) {
+    out.push('## Depends on', ...epic.dependsOn.map((d) => `- ${d}`), '');
+  }
+  if (list(epic.openQuestions).length) {
+    out.push('## Open questions', ...epic.openQuestions.map((q) => `- ${q}`), '');
+  }
+  out.push('---', `_Generated by ReqForge. Sizing: ${epic.sizing ?? 'M'}._`);
+  return out.join('\n');
+}
+
+/** Renders a story to the markdown that becomes its Jira description. */
+export function storyToMarkdown(story: StoryProposal): string {
+  const out: string[] = [];
+  out.push(
+    `**As a** ${story.narrative.asA}`,
+    `**I want** ${story.narrative.iWant}`,
+    `**So that** ${story.narrative.soThat}`,
+    `*Priority:* ${story.priority ?? 'Should'}`,
+    ''
+  );
+  if (story.description?.trim()) {
+    out.push(story.description, '');
+  }
+  if (list(story.acceptanceCriteria).length) {
+    out.push('## Acceptance criteria');
+    for (const ac of story.acceptanceCriteria) {
+      out.push(`- **Given** ${ac.given} **when** ${ac.when} **then** ${ac.then}`);
+    }
+    out.push('');
+  }
+  if (list(story.outOfScope).length) {
+    out.push('## Out of scope', ...story.outOfScope.map((o) => `- ${o}`), '');
+  }
+  if (list(story.technicalNotes).length) {
+    out.push('## Technical notes', ...story.technicalNotes.map((t) => `- ${t}`), '');
+  }
+  if (list(story.assumptions).length) {
+    out.push('## Assumptions', ...story.assumptions.map((a) => `- ${a}`), '');
+  }
+  out.push(...linkLines(story.links));
+  if (list(story.dependsOn).length) {
+    out.push('## Depends on', ...story.dependsOn.map((d) => `- ${d}`), '');
+  }
+  if (list(story.openQuestions).length) {
+    out.push('## Open questions', ...story.openQuestions.map((q) => `- ${q}`), '');
+  }
+  out.push('---', `_Generated by ReqForge. Estimate: ${story.points ?? 3} points._`);
+  return out.join('\n');
+}
+
+export function slugify(input: string): string {
+  return (
+    input
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 60) || 'untitled'
+  );
+}
